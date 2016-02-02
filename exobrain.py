@@ -15,26 +15,36 @@ Exobrain
 import os.path
 
 
-LIST_INDENT = 4
-DEFAULT_ROOT = '~/exobrain'
-DEFAULT_EDITOR = 'vim'
-DEFAULT_COLORS = """
-    list=38;5;37
-    list2=38;5;77
-    list3=38;5;227
-    list4=38;5;209
-    number=38;5;210
-    error=1;31"""
+class Conf(object):
+    INDENT = "EXOBRAIN_INDENT", 4
+    ROOT = "EXOBRAIN_ROOT", '~/exobrain'
+    EDITOR = "EDITOR", 'vim'
+    COLORS = "EXOBRAIN_COLORS", """
+        list=38;5;37:list2=38;5;77:list3=38;5;227:list4=38;5;209
+        number=38;5;210
+        error=1;31
+    """
+
+    def __getattr__(self, attribute):
+        # Lazily set the attribute by looking up the environment variable and
+        # default value in self.ATTRIBUTE
+        if hasattr(self, attribute.upper()):
+            env_var, default = getattr(self, attribute.upper())
+            value = type(default)(os.environ.get(env_var, default))
+            setattr(self, attribute, value)
+            return value
+        raise AttributeError("Unknown attribute: " + attribute)
 
 
 class Exobrain(object):
-    def __init__(self, args):
+    def __init__(self):
+        self.conf = Conf()
+        args = self.parse_args()
         self.action = args.do
         self.note_name = args.note_name
         self.rootdir = os.path.expanduser(args.r)
         self.verbose = args.verbose
-        self.prettify = Prettifier(
-            os.environ.get("EXOBRAIN_COLORS", DEFAULT_COLORS))
+        self.prettify = Prettifier(self.conf)
 
     def run(self):
         if self.action == 'syntax':
@@ -75,14 +85,11 @@ class Exobrain(object):
             return partial_match
         raise RuntimeError("Note not found")
 
-    @staticmethod
-    def edit_file(filename):
+    def edit_file(self, filename):
         import subprocess
-        editor = os.environ.get("EDITOR", DEFAULT_EDITOR)
-        subprocess.call([editor, filename])
+        subprocess.call([self.conf.editor, filename])
 
-    @staticmethod
-    def parse_args():
+    def parse_args(self):
         import argparse
         parser = argparse.ArgumentParser(description='')
         action = parser.add_mutually_exclusive_group()
@@ -95,20 +102,20 @@ class Exobrain(object):
                             action="store_const", const='edit', dest="do")
         parser.add_argument('-r', help='change the root directory',
                             type=str, metavar='directory',
-                            default=DEFAULT_ROOT)
+                            default=self.conf.root)
         parser.add_argument("-v", "--verbose", action="store_true",
                             help="display hidden lines")
         return parser.parse_args()
 
 
 class Prettifier(object):
-    def __init__(self, colorscheme):
-        self.colorscheme = colorscheme
+    def __init__(self, conf):
+        self.conf = conf
         self._parsed_scheme = None
 
     def clr(self, tag, string):
         if not self._parsed_scheme:
-            self._parsed_scheme = self.parse_colorscheme(self.colorscheme)
+            self._parsed_scheme = self.parse_colorscheme(self.conf.colors)
         color = self._parsed_scheme.get(tag, "0")
         return "\033[%sm%s\033[0m" % (color, string)
 
@@ -130,11 +137,12 @@ class Prettifier(object):
             if not verbose and \
                     (line.startswith("|") or line.lstrip().startswith("x ")):
                 continue
+
             def highlight_bullets(match):
                 spaces = match.group(1)
-                if len(spaces) > LIST_INDENT * 2:
+                if len(spaces) > self.conf.indent * 2:
                     return spaces + self.clr("list4", bullet)
-                elif len(spaces) > LIST_INDENT * 1:
+                elif len(spaces) > self.conf.indent * 1:
                     return spaces + self.clr("list3", bullet)
                 elif len(spaces) > 0:
                     return spaces + self.clr("list2", bullet)
@@ -151,4 +159,4 @@ class Prettifier(object):
             yield line
 
 if __name__ == '__main__':
-    Exobrain(Exobrain.parse_args()).run()
+    Exobrain().run()
