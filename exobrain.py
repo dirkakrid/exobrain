@@ -45,6 +45,13 @@ class Exobrain(object):
             self.edit_file(filename)
         else:
             filename = self.find_note(self.note_name)
+            self.show_note(filename)
+
+    def show_note(self, filename):
+        if os.access(filename, os.X_OK):
+            import subprocess
+            subprocess.call([filename])
+        else:
             content = open(filename, 'r').read().rstrip("\n")
             print("\n".join(self.prettify(content)))
 
