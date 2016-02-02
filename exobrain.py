@@ -133,7 +133,7 @@ class Prettifier(object):
             def highlight_numbers(match):
                 return self.clr("number", match.group(1))
 
-            line = re.sub(r"^(\s*)[*-0]", highlight_bullets, line)
+            line = re.sub(r"^(\s*)[*-0](?= )", highlight_bullets, line)
             line = re.sub(
                     r"([+-=]?(?:[0-9]\.?[0-9]*(e-?[0-9]+)?|0x[0-9A-Fa-f]+))",
                     highlight_numbers, line)
