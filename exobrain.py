@@ -31,6 +31,7 @@ class Exobrain(object):
         self.action = args.do
         self.note_name = args.note_name
         self.rootdir = os.path.expanduser(args.r)
+        self.verbose = args.verbose
         self.prettify = Prettifier(
             os.environ.get("EXOBRAIN_COLORS", DEFAULT_COLORS))
 
@@ -53,7 +54,7 @@ class Exobrain(object):
             subprocess.call([filename])
         else:
             content = open(filename, 'r').read().rstrip("\n")
-            print("\n".join(self.prettify(content)))
+            print("\n".join(self.prettify(content, verbose=self.verbose)))
 
     def find_note(self, note_name):
         partial_match = None
@@ -80,16 +81,18 @@ class Exobrain(object):
         import argparse
         parser = argparse.ArgumentParser(description='')
         action = parser.add_mutually_exclusive_group()
-        action.add_argument('-e', help='edit the given note',
-                            action="store_const", const='edit', dest="do")
+        parser.add_argument('note_name', nargs='?', default='default',
+                            metavar="note name")
         action.add_argument('--help-syntax', action='store_const',
                             const="syntax", dest="do",
                             help="print information on the markup syntax")
+        action.add_argument('-e', help='edit the given note',
+                            action="store_const", const='edit', dest="do")
         parser.add_argument('-r', help='change the root directory',
                             type=str, metavar='directory',
                             default=DEFAULT_ROOT)
-        parser.add_argument('note_name', nargs='?', default='default',
-                            metavar="note name")
+        parser.add_argument("-v", "--verbose", action="store_true",
+                            help="display hidden lines")
         return parser.parse_args()
 
 
@@ -114,11 +117,14 @@ class Prettifier(object):
                 scheme[key.strip()] = value.strip()
         return scheme
 
-    def __call__(self, string):
+    def __call__(self, string, verbose=False):
         import re
 
         bullet = "\u25cf"
         for line in string.split("\n"):
+            if not verbose and \
+                    (line.startswith("|") or line.lstrip().startswith("x ")):
+                continue
             def highlight_bullets(match):
                 spaces = match.group(1)
                 if len(spaces) > LIST_INDENT * 2:
