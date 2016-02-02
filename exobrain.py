@@ -23,7 +23,8 @@ DEFAULT_COLORS = """
     list2=38;5;77
     list3=38;5;227
     list4=38;5;209
-    number=38;5;210"""
+    number=38;5;210
+    error=1;31"""
 
 
 class Exobrain(object):
@@ -45,8 +46,12 @@ class Exobrain(object):
                 filename = os.path.join(self.rootdir, self.note_name)
             self.edit_file(filename)
         else:
-            filename = self.find_note(self.note_name)
-            self.show_note(filename)
+            try:
+                filename = self.find_note(self.note_name)
+            except RuntimeError:
+                print(self.prettify.clr("error", "Error: no such note"))
+            else:
+                self.show_note(filename)
 
     def show_note(self, filename):
         if os.access(filename, os.X_OK):
