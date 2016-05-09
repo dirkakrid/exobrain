@@ -21,6 +21,7 @@ class Conf(object):
     EDITOR = "EDITOR", 'vim'
     COLORS = "EXOBRAIN_COLORS", """
         list=38;5;37:list2=38;5;77:list3=38;5;227:list4=38;5;209
+        important=1;38;5;196
         number=38;5;210
         error=1;31
     """
@@ -152,7 +153,11 @@ class Prettifier(object):
             def highlight_numbers(match):
                 return self.clr("number", match.group(1))
 
+            def highlight_words(match):
+                return self.clr("important", match.group(1))
+
             line = re.sub(r"^(\s*)[*-0](?= )", highlight_bullets, line)
+            line = re.sub(r"(XXX+)", highlight_words, line)
             line = re.sub(
                     r"([+-=]?(?:[0-9]\.?[0-9]*(e-?[0-9]+)?|0x[0-9A-Fa-f]+))",
                     highlight_numbers, line)
