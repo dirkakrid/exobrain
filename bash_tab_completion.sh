@@ -13,8 +13,10 @@ _exobrain_walkdir() {
 
 	cd "$dir"
 
-	find "$finddir" -name "$basename*" -a \! -name '.git*' | sed 's!./!!'
-	find "$finddir" -type f -name "$basename*" -a \! -name '.git*' | sed 's!./!!' | xargs basename -a 2> /dev/null
+	(
+		find "$finddir" -name "$basename*" -a \! -path '*.git*' | sed 's!./!!'
+		find "$finddir" -type f -name "$basename*" -a \! -path '*.git*' | sed 's!./!!' | xargs basename -a 2> /dev/null
+	) | sort -u
 }
 
 _TabComplete_Exobrain () {
@@ -22,4 +24,4 @@ _TabComplete_Exobrain () {
 	COMPREPLY=( $(compgen -W "$(_exobrain_walkdir "$cur" "$EXOBRAIN_ROOT")" "$cur" ) )
 }
 
-complete -F _TabComplete_Exobrain -o filenames eb
+complete -F _TabComplete_Exobrain -o filenames exobrain
