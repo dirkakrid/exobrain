@@ -170,6 +170,8 @@ class Prettifier(object):
             if not verbose and \
                     (line.startswith("|") or line.lstrip().startswith("x ")):
                 continue
+            elif line.startswith("|") and verbose:
+                line = line[1:]
 
             def highlight_bullets(match):
                 spaces = match.group(1)
