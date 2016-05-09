@@ -19,6 +19,7 @@ class Conf(object):
     INDENT = "EXOBRAIN_INDENT", 4
     ROOT = "EXOBRAIN_ROOT", '~/exobrain'
     EDITOR = "EDITOR", 'vim'
+    STATS_FNAME = 'stats'
     COLORS = "EXOBRAIN_COLORS", """
         list=38;5;37:list2=38;5;77:list3=38;5;227:list4=38;5;209
         important=1;38;5;196
@@ -71,6 +72,37 @@ class Exobrain(object):
         else:
             content = open(filename, 'r').read().rstrip("\n")
             print("\n".join(self.prettify(content, verbose=self.verbose)))
+            self._increment_stats(filename)
+
+    def _increment_stats(self, filename):
+        import re
+        note = filename[len(self.rootdir) + 1:]
+        stats_fname = os.path.join(self.rootdir, self.conf.STATS_FNAME)
+        found = False
+
+        try:
+            with open(stats_fname, "r") as instream:
+                lines = instream.readlines()
+        except FileNotFoundError:
+            lines = []
+
+        output = []
+        for line in lines:
+            if not found:
+                match = re.match(r"^(\d+) (.*)$", line)
+                if match and match.group(2) == note:
+                    output.append("%d %s\n" % (int(match.group(1)) + 1, note))
+                    found = True
+                else:
+                    output.append(line)
+            else:
+                output.append(line)
+        if not found:
+            output.append("%d %s\n" % (1, note))
+
+        with open(stats_fname + "_", "w") as outstream:
+            outstream.write("".join(output))
+        os.rename(stats_fname + "_", stats_fname)
 
     def find_note(self, note_name):
         partial_match = None
